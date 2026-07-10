@@ -5,8 +5,8 @@ import { Splash } from "./components/Splash";
 
 const BEST_SCORE_KEY = "qishta-fruit-catch-best-score";
 const REPLAY_DIFFICULTY_CARRY = 0.8;
-const SPLASH_VISIBLE_MS = 1300;
-const SPLASH_FADE_MS = 350;
+const SPLASH_VISIBLE_MS = 950;
+const SPLASH_FADE_MS = 300;
 
 function loadBestScore(): number {
   const raw = localStorage.getItem(BEST_SCORE_KEY);

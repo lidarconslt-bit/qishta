@@ -20,10 +20,17 @@ function legacyCopy(text: string): boolean {
   return copied;
 }
 
-export async function shareText(text: string): Promise<ShareOutcome> {
+export async function shareResult(text: string, url: string): Promise<ShareOutcome> {
+  // The URL is embedded directly in the shared text (not just passed via the
+  // `url` field) because several major share targets on Android — WhatsApp
+  // among them — only read the `text` member of the share intent and silently
+  // drop `url`. `url` is still included for targets that do use it (e.g. rich
+  // link previews), so both paths are covered.
+  const fullText = `${text}\n\n${url}`;
+
   if (navigator.share) {
     try {
-      await navigator.share({ title: "قشطة", text });
+      await navigator.share({ title: "قشطة", text: fullText, url });
       return "shared";
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
@@ -36,11 +43,11 @@ export async function shareText(text: string): Promise<ShareOutcome> {
   }
   if (navigator.clipboard?.writeText) {
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(fullText);
       return "copied";
     } catch {
       /* fall through to legacy copy */
     }
   }
-  return legacyCopy(text) ? "copied" : "unavailable";
+  return legacyCopy(fullText) ? "copied" : "unavailable";
 }

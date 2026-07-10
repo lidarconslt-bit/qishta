@@ -26,8 +26,11 @@ const MAX_DT = 0.05;
 const START_DELAY_MS = 350;
 
 const SPAWN_ZONE_COUNT = 3;
+const MIN_SPAWN_GAP = 70; // px, minimum horizontal distance from the previous spawn
 const PARTICLE_COLORS = ["accent", "pink", "mint"] as const;
 const PARTICLE_COUNT = 6;
+const CATCH_BURST_DELAY_MS = 40;
+const FLOATING_SCORE_DELAY_MS = 70;
 
 function smoothstep(x: number): number {
   const t = Math.min(1, Math.max(0, x));
@@ -91,6 +94,8 @@ export function useGameLoop({
     let pointerActive = false;
     let lastSpawnZone = -1;
     let secondLastSpawnZone = -1;
+    let lastSpawnX = -1;
+    let lastEmojiIndex = -1;
     const keys = { left: false, right: false };
     const entities: FruitEntity[] = [];
 
@@ -160,7 +165,27 @@ export function useGameLoop({
       const zoneStart = zone * zoneWidth;
       const min = Math.max(FRUIT_RADIUS, zoneStart);
       const max = Math.min(fieldWidth - FRUIT_RADIUS, zoneStart + zoneWidth);
-      return max > min ? min + Math.random() * (max - min) : min;
+
+      let x = max > min ? min + Math.random() * (max - min) : min;
+      if (lastSpawnX >= 0 && Math.abs(x - lastSpawnX) < MIN_SPAWN_GAP && max > min) {
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          const candidate = min + Math.random() * (max - min);
+          if (Math.abs(candidate - lastSpawnX) > Math.abs(x - lastSpawnX)) {
+            x = candidate;
+          }
+        }
+      }
+      lastSpawnX = x;
+      return x;
+    };
+
+    const pickFruitEmoji = (): string => {
+      let index = Math.floor(Math.random() * FRUIT_EMOJIS.length);
+      if (index === lastEmojiIndex) {
+        index = (index + 1 + Math.floor(Math.random() * (FRUIT_EMOJIS.length - 1))) % FRUIT_EMOJIS.length;
+      }
+      lastEmojiIndex = index;
+      return FRUIT_EMOJIS[index];
     };
 
     const spawnFruit = (fieldWidth: number) => {
@@ -168,7 +193,7 @@ export function useGameLoop({
       el.className = "fruit";
       const inner = document.createElement("div");
       inner.className = "fruit__emoji";
-      inner.textContent = FRUIT_EMOJIS[Math.floor(Math.random() * FRUIT_EMOJIS.length)];
+      inner.textContent = pickFruitEmoji();
       el.appendChild(inner);
       field.appendChild(el);
       const x = pickSpawnX(fieldWidth);
@@ -185,7 +210,7 @@ export function useGameLoop({
       inner.textContent = "+1";
       wrapper.appendChild(inner);
       field.appendChild(wrapper);
-      window.setTimeout(() => wrapper.remove(), 650);
+      window.setTimeout(() => wrapper.remove(), 700);
     };
 
     const spawnCatchBurst = (x: number, y: number) => {
@@ -198,14 +223,18 @@ export function useGameLoop({
       for (let i = 0; i < PARTICLE_COUNT; i += 1) {
         const angle = (Math.PI * 2 * i) / PARTICLE_COUNT + (Math.random() - 0.5) * 0.5;
         const distance = 20 + Math.random() * 16;
+        const isSparkle = i % 3 === 2;
         const particle = document.createElement("div");
-        particle.className = `catch-particle catch-particle--${PARTICLE_COLORS[i % PARTICLE_COLORS.length]}`;
+        const colorClass = `catch-particle--${PARTICLE_COLORS[i % PARTICLE_COLORS.length]}`;
+        particle.className = isSparkle
+          ? `catch-particle catch-particle--sparkle ${colorClass}`
+          : `catch-particle ${colorClass}`;
         particle.style.setProperty("--tx", `${Math.cos(angle) * distance}px`);
         particle.style.setProperty("--ty", `${Math.sin(angle) * distance}px`);
         wrapper.appendChild(particle);
       }
       field.appendChild(wrapper);
-      window.setTimeout(() => wrapper.remove(), 420);
+      window.setTimeout(() => wrapper.remove(), 400);
     };
 
     const pulseBasket = (className: string) => {
@@ -214,13 +243,6 @@ export function useGameLoop({
       emoji.classList.remove(className);
       void emoji.offsetWidth;
       emoji.classList.add(className);
-    };
-
-    const triggerCatchFeedback = () => {
-      field.classList.remove("field--catch");
-      void field.offsetWidth;
-      field.classList.add("field--catch");
-      navigator.vibrate?.(10);
     };
 
     const triggerMissFeedback = () => {
@@ -296,15 +318,20 @@ export function useGameLoop({
 
         if (withinBand && withinX) {
           entity.state = "caught";
+          entity.inner.style.setProperty("--pop-rotate", `${(Math.random() - 0.5) * 28}deg`);
           entity.inner.classList.add("fruit__emoji--caught");
           window.setTimeout(() => entity.el.remove(), 280);
-          spawnFloatingScore(entity.x - 10, basketCenterY - 46);
-          spawnCatchBurst(entity.x, basketCenterY - 10);
           pulseBasket("basket__emoji--catch");
-          triggerCatchFeedback();
+          navigator.vibrate?.(10);
           score += 1;
           onScoreChangeRef.current(score);
           playSound("catch");
+          const catchX = entity.x;
+          window.setTimeout(() => spawnCatchBurst(catchX, basketCenterY - 10), CATCH_BURST_DELAY_MS);
+          window.setTimeout(
+            () => spawnFloatingScore(catchX - 10, basketCenterY - 46),
+            FLOATING_SCORE_DELAY_MS,
+          );
         } else if (entity.y - FRUIT_RADIUS > rect.height) {
           entity.state = "missed";
           entity.inner.classList.add("fruit__emoji--missed");
