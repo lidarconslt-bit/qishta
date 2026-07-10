@@ -1,4 +1,4 @@
-export type SoundName = "catch" | "miss" | "gameOver";
+export type SoundName = "catch" | "specialCatch" | "miss" | "gameOver";
 
 const clips: Partial<Record<SoundName, HTMLAudioElement>> = {};
 

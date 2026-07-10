@@ -29,12 +29,47 @@ const SPAWN_ZONE_COUNT = 3;
 const MIN_SPAWN_GAP = 70; // px, minimum horizontal distance from the previous spawn
 const PARTICLE_COLORS = ["accent", "pink", "mint"] as const;
 const PARTICLE_COUNT = 6;
+const SPECIAL_PARTICLE_COUNT = 9;
 const CATCH_BURST_DELAY_MS = 40;
 const FLOATING_SCORE_DELAY_MS = 70;
+
+// Special (bonus) fruits. Adding a new one later is just another entry here —
+// the spawn timer, entity, scoring and reward visuals all read from this
+// definition rather than special-casing a fruit type by name.
+interface SpecialFruit {
+  emoji: string;
+  points: number;
+  className: string;
+  minIntervalMs: number;
+  maxIntervalMs: number;
+  // Optional shorter window for this fruit's very first appearance in a
+  // session, so it isn't left to the luck of the regular rare timing.
+  // Falls back to minIntervalMs/maxIntervalMs when omitted.
+  firstMinIntervalMs?: number;
+  firstMaxIntervalMs?: number;
+}
+
+const DATE_FRUIT: SpecialFruit = {
+  emoji: "🌴",
+  points: 5,
+  className: "fruit__emoji--date",
+  minIntervalMs: 20000,
+  maxIntervalMs: 30000,
+  firstMinIntervalMs: 10000,
+  firstMaxIntervalMs: 15000,
+};
+
+const SPECIAL_FRUITS: SpecialFruit[] = [DATE_FRUIT];
 
 function smoothstep(x: number): number {
   const t = Math.min(1, Math.max(0, x));
   return t * t * (3 - 2 * t);
+}
+
+function randomSpecialInterval(fruit: SpecialFruit, isFirst: boolean): number {
+  const min = isFirst ? (fruit.firstMinIntervalMs ?? fruit.minIntervalMs) : fruit.minIntervalMs;
+  const max = isFirst ? (fruit.firstMaxIntervalMs ?? fruit.maxIntervalMs) : fruit.maxIntervalMs;
+  return min + Math.random() * (max - min);
 }
 
 interface FruitEntity {
@@ -44,6 +79,8 @@ interface FruitEntity {
   y: number;
   vy: number;
   state: "falling" | "caught" | "missed";
+  points: number;
+  special: boolean;
 }
 
 interface UseGameLoopOptions {
@@ -96,6 +133,7 @@ export function useGameLoop({
     let secondLastSpawnZone = -1;
     let lastSpawnX = -1;
     let lastEmojiIndex = -1;
+    const specialTimers = SPECIAL_FRUITS.map((fruit) => randomSpecialInterval(fruit, true));
     const keys = { left: false, right: false };
     const entities: FruitEntity[] = [];
 
@@ -188,42 +226,53 @@ export function useGameLoop({
       return FRUIT_EMOJIS[index];
     };
 
-    const spawnFruit = (fieldWidth: number) => {
+    const spawnFruit = (fieldWidth: number, special: SpecialFruit | null = null) => {
       const el = document.createElement("div");
       el.className = "fruit";
       const inner = document.createElement("div");
-      inner.className = "fruit__emoji";
-      inner.textContent = pickFruitEmoji();
+      inner.className = special ? `fruit__emoji ${special.className}` : "fruit__emoji";
+      inner.textContent = special ? special.emoji : pickFruitEmoji();
       el.appendChild(inner);
       field.appendChild(el);
       const x = pickSpawnX(fieldWidth);
       const vy = currentFallSpeed() * (0.88 + Math.random() * 0.24);
-      entities.push({ el, inner, x, y: -FRUIT_RADIUS, vy, state: "falling" });
+      entities.push({
+        el,
+        inner,
+        x,
+        y: -FRUIT_RADIUS,
+        vy,
+        state: "falling",
+        points: special ? special.points : 1,
+        special: special !== null,
+      });
     };
 
-    const spawnFloatingScore = (x: number, y: number) => {
+    const spawnFloatingScore = (x: number, y: number, points: number, special: boolean) => {
       const wrapper = document.createElement("div");
       wrapper.className = "float-score";
       wrapper.style.transform = `translate3d(${x}px, ${y}px, 0)`;
       const inner = document.createElement("div");
-      inner.className = "float-score__inner";
-      inner.textContent = "+1";
+      inner.className = special ? "float-score__inner float-score__inner--special" : "float-score__inner";
+      inner.textContent = `+${points}`;
       wrapper.appendChild(inner);
       field.appendChild(wrapper);
       window.setTimeout(() => wrapper.remove(), 700);
     };
 
-    const spawnCatchBurst = (x: number, y: number) => {
+    const spawnCatchBurst = (x: number, y: number, special: boolean) => {
       const wrapper = document.createElement("div");
-      wrapper.className = "catch-burst";
+      wrapper.className = special ? "catch-burst catch-burst--special" : "catch-burst";
       wrapper.style.transform = `translate3d(${x}px, ${y}px, 0)`;
       const ring = document.createElement("div");
       ring.className = "catch-burst__ring";
       wrapper.appendChild(ring);
-      for (let i = 0; i < PARTICLE_COUNT; i += 1) {
-        const angle = (Math.PI * 2 * i) / PARTICLE_COUNT + (Math.random() - 0.5) * 0.5;
+      const particleCount = special ? SPECIAL_PARTICLE_COUNT : PARTICLE_COUNT;
+      const sparkleEvery = special ? 2 : 3;
+      for (let i = 0; i < particleCount; i += 1) {
+        const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5;
         const distance = 20 + Math.random() * 16;
-        const isSparkle = i % 3 === 2;
+        const isSparkle = i % sparkleEvery === sparkleEvery - 1;
         const particle = document.createElement("div");
         const colorClass = `catch-particle--${PARTICLE_COLORS[i % PARTICLE_COLORS.length]}`;
         particle.className = isSparkle
@@ -304,6 +353,14 @@ export function useGameLoop({
         spawnTimerMs = currentSpawnInterval() * (0.85 + Math.random() * 0.3);
       }
 
+      for (let i = 0; i < SPECIAL_FRUITS.length; i += 1) {
+        specialTimers[i] -= dt * 1000;
+        if (specialTimers[i] <= 0) {
+          spawnFruit(rect.width, SPECIAL_FRUITS[i]);
+          specialTimers[i] = randomSpecialInterval(SPECIAL_FRUITS[i], false);
+        }
+      }
+
       const basketRect = basket.getBoundingClientRect();
       const basketCenterY = basketRect.top - rect.top + basketRect.height / 2;
 
@@ -322,14 +379,19 @@ export function useGameLoop({
           entity.inner.classList.add("fruit__emoji--caught");
           window.setTimeout(() => entity.el.remove(), 280);
           pulseBasket("basket__emoji--catch");
-          navigator.vibrate?.(10);
-          score += 1;
+          navigator.vibrate?.(entity.special ? 18 : 10);
+          score += entity.points;
           onScoreChangeRef.current(score);
-          playSound("catch");
+          playSound(entity.special ? "specialCatch" : "catch");
           const catchX = entity.x;
-          window.setTimeout(() => spawnCatchBurst(catchX, basketCenterY - 10), CATCH_BURST_DELAY_MS);
+          const catchPoints = entity.points;
+          const catchSpecial = entity.special;
           window.setTimeout(
-            () => spawnFloatingScore(catchX - 10, basketCenterY - 46),
+            () => spawnCatchBurst(catchX, basketCenterY - 10, catchSpecial),
+            CATCH_BURST_DELAY_MS,
+          );
+          window.setTimeout(
+            () => spawnFloatingScore(catchX - 10, basketCenterY - 46, catchPoints, catchSpecial),
             FLOATING_SCORE_DELAY_MS,
           );
         } else if (entity.y - FRUIT_RADIUS > rect.height) {

@@ -291,6 +291,13 @@ body {
   filter: drop-shadow(0 3px 4px rgba(var(--color-text-rgb), 0.16));
 }
 
+.fruit__emoji--date {
+  font-size: 34px;
+  filter: drop-shadow(0 3px 4px rgba(var(--color-text-rgb), 0.16))
+    drop-shadow(0 0 8px rgba(var(--color-accent-rgb), 0.6));
+  animation: date-glow 1.2s ease-in-out infinite;
+}
+
 .fruit__emoji--caught {
   animation: fruit-pop 280ms ease-out forwards;
 }
@@ -314,6 +321,11 @@ body {
   animation: float-up 700ms var(--ease-premium) forwards;
 }
 
+.float-score__inner--special {
+  font-size: 27px;
+  text-shadow: 0 0 12px rgba(var(--color-accent-rgb), 0.5);
+}
+
 .catch-burst {
   position: absolute;
   top: 0;
@@ -330,6 +342,14 @@ body {
   border-radius: 50%;
   background: radial-gradient(circle, rgba(var(--color-accent-rgb), 0.55) 0%, rgba(var(--color-accent-rgb), 0) 70%);
   animation: catch-burst 400ms ease-out forwards;
+}
+
+.catch-burst--special .catch-burst__ring {
+  width: 66px;
+  height: 66px;
+  margin-left: -33px;
+  margin-top: -33px;
+  background: radial-gradient(circle, rgba(var(--color-accent-rgb), 0.75) 0%, rgba(var(--color-accent-rgb), 0) 70%);
 }
 
 .catch-particle {
@@ -479,6 +499,16 @@ body {
   background: #ffffff;
   border-color: var(--color-primary);
   color: var(--color-primary);
+}
+
+@keyframes date-glow {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
 }
 
 @keyframes fruit-pop {
