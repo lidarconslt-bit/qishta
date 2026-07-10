@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useGameLoop } from "./useGameLoop";
 import { Ground } from "./components/Ground";
+import { getActiveStage } from "./stages";
 
 interface GameFieldProps {
   startElapsedMs: number;
@@ -22,6 +23,7 @@ export function GameField({ startElapsedMs, onGameOver }: GameFieldProps) {
     basketEmojiRef,
     heartsWrapRef,
     startElapsedMs,
+    stage: getActiveStage(),
     onScoreChange: setScore,
     onHeartsChange: setHearts,
     onGameOver,

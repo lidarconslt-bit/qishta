@@ -58,6 +58,12 @@ function useCountUpScore(target: number): { value: number; settled: boolean } {
   return { value, settled };
 }
 
+function getEncouragement(score: number): string {
+  if (score >= 50) return "مبدع! ⭐";
+  if (score >= 20) return "أحسنت! 🎉";
+  return "بداية رائعة 👏";
+}
+
 export function GameOverScreen({ score, bestScore, isNewBest, onPlayAgain }: GameOverScreenProps) {
   const [shareState, setShareState] = useState<ShareState>("idle");
   const { value: displayScore, settled } = useCountUpScore(score);
@@ -79,12 +85,23 @@ export function GameOverScreen({ score, bestScore, isNewBest, onPlayAgain }: Gam
   return (
     <div className="game-over">
       <div className="game-over__card">
-        <BrandLogo width={200} className="game-over__logo" />
+        <BrandLogo width={155} className="game-over__logo" />
         {isNewBest && <div className="game-over__badge">🎉 رقم قياسي جديد</div>}
         <h1 className="game-over__title">انتهت اللعبة</h1>
-        <div className="game-over__score" ref={scoreElRef}>
-          {displayScore}
+        <div className="game-over__score-wrap">
+          <div className="game-over__score" ref={scoreElRef}>
+            {displayScore}
+          </div>
+          <div className="game-over__sparks" aria-hidden="true">
+            <span className="game-over__spark game-over__spark--1" />
+            <span className="game-over__spark game-over__spark--2" />
+            <span className="game-over__spark game-over__spark--3" />
+            <span className="game-over__spark game-over__spark--4" />
+            <span className="game-over__spark game-over__spark--5" />
+            <span className="game-over__spark game-over__spark--6" />
+          </div>
         </div>
+        <div className="game-over__encouragement">{getEncouragement(score)}</div>
         <div className="game-over__best">أفضل نتيجة: {bestScore}</div>
         <div className="game-over__actions">
           <Button variant="primary" icon={<ReplayIcon />} onClick={onPlayAgain}>

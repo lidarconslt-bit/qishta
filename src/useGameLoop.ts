@@ -1,5 +1,6 @@
 import { useEffect, useRef, type RefObject } from "react";
 import { playSound } from "./sound";
+import type { SpecialFruit, StageConfig } from "./stages";
 
 const FRUIT_EMOJIS = ["🍎", "🍌", "🍇", "🍉", "🍒", "🍑", "🍓", "🥝", "🍍", "🍊"];
 
@@ -33,34 +34,6 @@ const SPECIAL_PARTICLE_COUNT = 9;
 const CATCH_BURST_DELAY_MS = 40;
 const FLOATING_SCORE_DELAY_MS = 70;
 
-// Special (bonus) fruits. Adding a new one later is just another entry here —
-// the spawn timer, entity, scoring and reward visuals all read from this
-// definition rather than special-casing a fruit type by name.
-interface SpecialFruit {
-  emoji: string;
-  points: number;
-  className: string;
-  minIntervalMs: number;
-  maxIntervalMs: number;
-  // Optional shorter window for this fruit's very first appearance in a
-  // session, so it isn't left to the luck of the regular rare timing.
-  // Falls back to minIntervalMs/maxIntervalMs when omitted.
-  firstMinIntervalMs?: number;
-  firstMaxIntervalMs?: number;
-}
-
-const DATE_FRUIT: SpecialFruit = {
-  emoji: "🌴",
-  points: 5,
-  className: "fruit__emoji--date",
-  minIntervalMs: 20000,
-  maxIntervalMs: 30000,
-  firstMinIntervalMs: 10000,
-  firstMaxIntervalMs: 15000,
-};
-
-const SPECIAL_FRUITS: SpecialFruit[] = [DATE_FRUIT];
-
 function smoothstep(x: number): number {
   const t = Math.min(1, Math.max(0, x));
   return t * t * (3 - 2 * t);
@@ -89,6 +62,7 @@ interface UseGameLoopOptions {
   basketEmojiRef: RefObject<HTMLDivElement | null>;
   heartsWrapRef: RefObject<HTMLDivElement | null>;
   startElapsedMs: number;
+  stage: StageConfig;
   onScoreChange: (score: number) => void;
   onHeartsChange: (hearts: number) => void;
   onGameOver: (finalScore: number, elapsedMs: number) => void;
@@ -100,6 +74,7 @@ export function useGameLoop({
   basketEmojiRef,
   heartsWrapRef,
   startElapsedMs,
+  stage,
   onScoreChange,
   onHeartsChange,
   onGameOver,
@@ -133,7 +108,8 @@ export function useGameLoop({
     let secondLastSpawnZone = -1;
     let lastSpawnX = -1;
     let lastEmojiIndex = -1;
-    const specialTimers = SPECIAL_FRUITS.map((fruit) => randomSpecialInterval(fruit, true));
+    const specialFruits = stage.specialFruits;
+    const specialTimers = specialFruits.map((fruit) => randomSpecialInterval(fruit, true));
     const keys = { left: false, right: false };
     const entities: FruitEntity[] = [];
 
@@ -172,7 +148,8 @@ export function useGameLoop({
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
 
-    const difficultyProgress = () => smoothstep(elapsedMs / 1000 / RAMP_DURATION_SEC);
+    const difficultyProgress = () =>
+      smoothstep((elapsedMs / 1000 / RAMP_DURATION_SEC) * stage.difficultyMultiplier);
 
     const currentFallSpeed = () =>
       BASE_FALL_SPEED + (MAX_FALL_SPEED - BASE_FALL_SPEED) * difficultyProgress();
@@ -257,7 +234,7 @@ export function useGameLoop({
       inner.textContent = `+${points}`;
       wrapper.appendChild(inner);
       field.appendChild(wrapper);
-      window.setTimeout(() => wrapper.remove(), 700);
+      window.setTimeout(() => wrapper.remove(), 240);
     };
 
     const spawnCatchBurst = (x: number, y: number, special: boolean) => {
@@ -353,11 +330,11 @@ export function useGameLoop({
         spawnTimerMs = currentSpawnInterval() * (0.85 + Math.random() * 0.3);
       }
 
-      for (let i = 0; i < SPECIAL_FRUITS.length; i += 1) {
+      for (let i = 0; i < specialFruits.length; i += 1) {
         specialTimers[i] -= dt * 1000;
         if (specialTimers[i] <= 0) {
-          spawnFruit(rect.width, SPECIAL_FRUITS[i]);
-          specialTimers[i] = randomSpecialInterval(SPECIAL_FRUITS[i], false);
+          spawnFruit(rect.width, specialFruits[i]);
+          specialTimers[i] = randomSpecialInterval(specialFruits[i], false);
         }
       }
 
@@ -378,7 +355,7 @@ export function useGameLoop({
           entity.inner.style.setProperty("--pop-rotate", `${(Math.random() - 0.5) * 28}deg`);
           entity.inner.classList.add("fruit__emoji--caught");
           window.setTimeout(() => entity.el.remove(), 280);
-          pulseBasket("basket__emoji--catch");
+          pulseBasket(entity.special ? "basket__emoji--date-catch" : "basket__emoji--catch");
           navigator.vibrate?.(entity.special ? 18 : 10);
           score += entity.points;
           onScoreChangeRef.current(score);
@@ -430,5 +407,5 @@ export function useGameLoop({
       entities.forEach((entity) => entity.el.remove());
       field.querySelectorAll(".float-score, .catch-burst").forEach((el) => el.remove());
     };
-  }, [fieldRef, basketRef, basketEmojiRef, heartsWrapRef, startElapsedMs]);
+  }, [fieldRef, basketRef, basketEmojiRef, heartsWrapRef, startElapsedMs, stage]);
 }
