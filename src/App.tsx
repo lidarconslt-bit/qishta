@@ -2,11 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { GameField } from "./GameField";
 import { GameOverScreen } from "./GameOverScreen";
 import { Splash } from "./components/Splash";
+import { StageCompleteOverlay } from "./components/StageCompleteOverlay";
 
 const BEST_SCORE_KEY = "qishta-fruit-catch-best-score";
 const REPLAY_DIFFICULTY_CARRY = 0.8;
 const SPLASH_VISIBLE_MS = 950;
 const SPLASH_FADE_MS = 300;
+const STAGE_COMPLETE_DELAY_MS = 2000;
 
 function loadBestScore(): number {
   const raw = localStorage.getItem(BEST_SCORE_KEY);
@@ -19,14 +21,22 @@ interface RoundResult {
   isNewBest: boolean;
 }
 
+interface RoundStart {
+  score: number;
+  hearts: number;
+  elapsedMs: number;
+}
+
 type SplashPhase = "visible" | "hiding" | "done";
 
 export default function App() {
   const [sessionId, setSessionId] = useState(0);
+  const [stageIndex, setStageIndex] = useState(0);
   const [bestScore, setBestScore] = useState(loadBestScore);
   const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
+  const [stageComplete, setStageComplete] = useState(false);
   const [splashPhase, setSplashPhase] = useState<SplashPhase>("visible");
-  const lastElapsedRef = useRef(0);
+  const nextRoundRef = useRef<RoundStart>({ score: 0, hearts: 3, elapsedMs: 0 });
 
   useEffect(() => {
     const hideTimer = window.setTimeout(() => setSplashPhase("hiding"), SPLASH_VISIBLE_MS);
@@ -37,9 +47,19 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!stageComplete) return;
+    const timer = window.setTimeout(() => {
+      setStageComplete(false);
+      setStageIndex((index) => index + 1);
+      setSessionId((id) => id + 1);
+    }, STAGE_COMPLETE_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [stageComplete]);
+
   const handleGameOver = useCallback(
     (score: number, elapsedMs: number) => {
-      lastElapsedRef.current = elapsedMs;
+      nextRoundRef.current = { score: 0, hearts: 3, elapsedMs: elapsedMs * REPLAY_DIFFICULTY_CARRY };
       const isNewBest = score > bestScore;
       if (isNewBest) {
         setBestScore(score);
@@ -50,8 +70,14 @@ export default function App() {
     [bestScore],
   );
 
+  const handleStageComplete = useCallback((score: number, hearts: number, elapsedMs: number) => {
+    nextRoundRef.current = { score, hearts, elapsedMs };
+    setStageComplete(true);
+  }, []);
+
   const handlePlayAgain = useCallback(() => {
     setRoundResult(null);
+    setStageIndex(0);
     setSessionId((id) => id + 1);
   }, []);
 
@@ -66,11 +92,17 @@ export default function App() {
           isNewBest={roundResult.isNewBest}
           onPlayAgain={handlePlayAgain}
         />
+      ) : stageComplete ? (
+        <StageCompleteOverlay />
       ) : (
         <GameField
           key={sessionId}
-          startElapsedMs={lastElapsedRef.current * REPLAY_DIFFICULTY_CARRY}
+          startElapsedMs={nextRoundRef.current.elapsedMs}
+          startScore={nextRoundRef.current.score}
+          startHearts={nextRoundRef.current.hearts}
+          stageIndex={stageIndex}
           onGameOver={handleGameOver}
+          onStageComplete={handleStageComplete}
         />
       )}
     </div>

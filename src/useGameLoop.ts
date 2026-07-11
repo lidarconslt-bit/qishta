@@ -62,10 +62,13 @@ interface UseGameLoopOptions {
   basketEmojiRef: RefObject<HTMLDivElement | null>;
   heartsWrapRef: RefObject<HTMLDivElement | null>;
   startElapsedMs: number;
+  startScore: number;
+  startHearts: number;
   stage: StageConfig;
   onScoreChange: (score: number) => void;
   onHeartsChange: (hearts: number) => void;
   onGameOver: (finalScore: number, elapsedMs: number) => void;
+  onStageComplete: (score: number, hearts: number, elapsedMs: number) => void;
 }
 
 export function useGameLoop({
@@ -74,17 +77,22 @@ export function useGameLoop({
   basketEmojiRef,
   heartsWrapRef,
   startElapsedMs,
+  startScore,
+  startHearts,
   stage,
   onScoreChange,
   onHeartsChange,
   onGameOver,
+  onStageComplete,
 }: UseGameLoopOptions): void {
   const onScoreChangeRef = useRef(onScoreChange);
   const onHeartsChangeRef = useRef(onHeartsChange);
   const onGameOverRef = useRef(onGameOver);
+  const onStageCompleteRef = useRef(onStageComplete);
   onScoreChangeRef.current = onScoreChange;
   onHeartsChangeRef.current = onHeartsChange;
   onGameOverRef.current = onGameOver;
+  onStageCompleteRef.current = onStageComplete;
 
   useEffect(() => {
     const field = fieldRef.current;
@@ -95,8 +103,9 @@ export function useGameLoop({
     let lastTime = 0;
     let elapsedMs = startElapsedMs;
     let spawnTimerMs = START_DELAY_MS;
-    let score = 0;
-    let hearts = 3;
+    let score = startScore;
+    let hearts = startHearts;
+    let fruitsCaughtInStage = 0;
     let gameOver = false;
     let basketWidth = 84;
     let targetX = 0;
@@ -290,6 +299,11 @@ export function useGameLoop({
       onGameOverRef.current(score, elapsedMs);
     };
 
+    const completeStage = () => {
+      gameOver = true;
+      onStageCompleteRef.current(score, hearts, elapsedMs);
+    };
+
     const tick = (time: number) => {
       if (gameOver) return;
       if (!lastTime) lastTime = time;
@@ -371,6 +385,11 @@ export function useGameLoop({
             () => spawnFloatingScore(catchX - 10, basketCenterY - 46, catchPoints, catchSpecial),
             FLOATING_SCORE_DELAY_MS,
           );
+          fruitsCaughtInStage += 1;
+          if (stage.targetFruits !== null && fruitsCaughtInStage >= stage.targetFruits) {
+            completeStage();
+            return;
+          }
         } else if (entity.y - FRUIT_RADIUS > rect.height) {
           entity.state = "missed";
           entity.inner.classList.add("fruit__emoji--missed");
@@ -407,5 +426,5 @@ export function useGameLoop({
       entities.forEach((entity) => entity.el.remove());
       field.querySelectorAll(".float-score, .catch-burst").forEach((el) => el.remove());
     };
-  }, [fieldRef, basketRef, basketEmojiRef, heartsWrapRef, startElapsedMs, stage]);
+  }, [fieldRef, basketRef, basketEmojiRef, heartsWrapRef, startElapsedMs, startScore, startHearts, stage]);
 }

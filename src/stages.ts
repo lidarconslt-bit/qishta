@@ -57,6 +57,13 @@ const DATE_FRUIT: SpecialFruit = {
 export const STAGES: StageConfig[] = [
   {
     id: 1,
+    targetFruits: 15,
+    difficultyMultiplier: 1,
+    specialFruits: [DATE_FRUIT],
+    hazards: [],
+  },
+  {
+    id: 2,
     targetFruits: null,
     difficultyMultiplier: 1,
     specialFruits: [DATE_FRUIT],
@@ -64,8 +71,6 @@ export const STAGES: StageConfig[] = [
   },
 ];
 
-const ACTIVE_STAGE_INDEX = 0;
-
-export function getActiveStage(): StageConfig {
-  return STAGES[ACTIVE_STAGE_INDEX];
+export function getStage(index: number): StageConfig {
+  return STAGES[Math.min(index, STAGES.length - 1)];
 }

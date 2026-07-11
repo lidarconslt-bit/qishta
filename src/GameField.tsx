@@ -1,21 +1,32 @@
 import { useEffect, useRef, useState } from "react";
 import { useGameLoop } from "./useGameLoop";
 import { Ground } from "./components/Ground";
-import { getActiveStage } from "./stages";
+import { getStage } from "./stages";
 
 interface GameFieldProps {
   startElapsedMs: number;
+  startScore: number;
+  startHearts: number;
+  stageIndex: number;
   onGameOver: (score: number, elapsedMs: number) => void;
+  onStageComplete: (score: number, hearts: number, elapsedMs: number) => void;
 }
 
-export function GameField({ startElapsedMs, onGameOver }: GameFieldProps) {
+export function GameField({
+  startElapsedMs,
+  startScore,
+  startHearts,
+  stageIndex,
+  onGameOver,
+  onStageComplete,
+}: GameFieldProps) {
   const fieldRef = useRef<HTMLDivElement>(null);
   const basketRef = useRef<HTMLDivElement>(null);
   const basketEmojiRef = useRef<HTMLDivElement>(null);
   const heartsWrapRef = useRef<HTMLDivElement>(null);
   const scoreElRef = useRef<HTMLDivElement>(null);
-  const [score, setScore] = useState(0);
-  const [hearts, setHearts] = useState(3);
+  const [score, setScore] = useState(startScore);
+  const [hearts, setHearts] = useState(startHearts);
 
   useGameLoop({
     fieldRef,
@@ -23,10 +34,13 @@ export function GameField({ startElapsedMs, onGameOver }: GameFieldProps) {
     basketEmojiRef,
     heartsWrapRef,
     startElapsedMs,
-    stage: getActiveStage(),
+    startScore,
+    startHearts,
+    stage: getStage(stageIndex),
     onScoreChange: setScore,
     onHeartsChange: setHearts,
     onGameOver,
+    onStageComplete,
   });
 
   useEffect(() => {
