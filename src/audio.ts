@@ -43,31 +43,49 @@ class AudioManagerImpl {
   play(id: string): void {
     const context = this.getContext();
     if (!context || !this.masterGain) return;
-    if (context.state === "suspended") {
-      context.resume().catch(() => {});
-    }
+    this.playWhenRunning(context, id).catch(() => {});
+  }
 
-    const cached = this.loaded.get(id);
-    if (cached) {
-      this.playBuffer(cached.buffer);
-      return;
+  /**
+   * iOS Safari suspends new AudioContexts until a user gesture, and starting
+   * a buffer source while state is still "suspended" is silently dropped
+   * rather than queued - so playback must wait for state to actually become
+   * "running" before calling start().
+   */
+  private async playWhenRunning(context: AudioContext, id: string): Promise<void> {
+    if (context.state !== "running") {
+      await context.resume().catch(() => {});
     }
-    this.load(id)
-      .then((sound) => {
-        if (sound) this.playBuffer(sound.buffer);
-      })
-      .catch(() => {});
+    if (context.state !== "running") return;
+
+    const sound = this.loaded.get(id) ?? (await this.load(id));
+    if (sound) this.playBuffer(sound.buffer);
   }
 
   /** Unlocks audio on mobile browsers that require a user gesture. Called automatically on first interaction. */
   unlock(): void {
     if (this.unlocked) return;
     const context = this.getContext();
-    if (!context) return;
+    if (!context || !this.masterGain) return;
+    this.unlocked = true;
+
     if (context.state === "suspended") {
       context.resume().catch(() => {});
     }
-    this.unlocked = true;
+
+    // iOS Safari only fully unlocks its audio hardware once an actual buffer
+    // has been started synchronously inside a user gesture - resume() alone
+    // can report "running" while the device stays silent. Playing a single
+    // silent sample here is the standard iOS Safari unlock pattern.
+    try {
+      const silentBuffer = context.createBuffer(1, 1, context.sampleRate);
+      const source = context.createBufferSource();
+      source.buffer = silentBuffer;
+      source.connect(this.masterGain);
+      source.start(0);
+    } catch {
+      /* silent-buffer unlock unsupported; resume() above still applies */
+    }
   }
 
   get volume(): number {
