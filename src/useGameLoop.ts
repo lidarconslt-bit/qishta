@@ -280,6 +280,20 @@ export function useGameLoop({
       emoji.classList.add(className);
     };
 
+    const pulseBasketImpact = () => {
+      basket.classList.remove("basket--impact");
+      void basket.offsetWidth;
+      basket.classList.add("basket--impact");
+    };
+
+    const shakeScreen = () => {
+      const stage = field.parentElement;
+      if (!stage) return;
+      stage.classList.remove("app--shake");
+      void stage.offsetWidth;
+      stage.classList.add("app--shake");
+    };
+
     const triggerMissFeedback = () => {
       field.classList.remove("field--miss");
       void field.offsetWidth;
@@ -370,6 +384,8 @@ export function useGameLoop({
           entity.inner.classList.add("fruit__emoji--caught");
           window.setTimeout(() => entity.el.remove(), 280);
           pulseBasket(entity.special ? "basket__emoji--date-catch" : "basket__emoji--catch");
+          pulseBasketImpact();
+          if (entity.special) shakeScreen();
           navigator.vibrate?.(entity.special ? 18 : 10);
           score += entity.points;
           onScoreChangeRef.current(score);
