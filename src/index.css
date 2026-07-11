@@ -455,7 +455,6 @@ body {
   font-weight: 700;
   color: var(--color-primary);
   line-height: 1;
-  opacity: 0;
   animation: score-entrance 320ms var(--ease-premium) 280ms both;
 }
 
