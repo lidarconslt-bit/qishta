@@ -1,7 +1,13 @@
+import { AudioManager } from "./audio";
+
 export type SoundName = "catch" | "specialCatch" | "miss" | "gameOver";
 
-const clips: Partial<Record<SoundName, HTMLAudioElement>> = {};
+// Only the normal-fruit catch sound is registered so far. specialCatch,
+// miss, and gameOver stay unregistered - AudioManager.play() on those
+// remains a silent no-op via its graceful fallback, exactly as before.
+AudioManager.register("catch", "/sounds/catch.wav");
+void AudioManager.preload(["catch"]);
 
 export function playSound(name: SoundName): void {
-  clips[name]?.play().catch(() => {});
+  AudioManager.play(name);
 }
