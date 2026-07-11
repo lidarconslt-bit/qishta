@@ -23,7 +23,13 @@ class AudioManagerImpl {
 
   constructor() {
     if (typeof window === "undefined") return;
-    const unlock = () => this.unlock();
+    const unlock = (e: Event) => this.unlock(e.type);
+    // iOS Safari's user-activation tracking for Web Audio does not reliably
+    // recognize Pointer Events - touchstart/mousedown/keydown are the event
+    // types it has always honored, so those are the primary unlock triggers.
+    // pointerdown stays too for non-iOS browsers already relying on it.
+    window.addEventListener("touchstart", unlock, { once: true });
+    window.addEventListener("mousedown", unlock, { once: true });
     window.addEventListener("pointerdown", unlock, { once: true });
     window.addEventListener("keydown", unlock, { once: true });
   }
@@ -56,6 +62,8 @@ class AudioManagerImpl {
     if (context.state !== "running") {
       await context.resume().catch(() => {});
     }
+    // TEMP DEBUG - remove once iOS Safari playback is confirmed fixed.
+    console.log(`[audio] play("${id}") context=${context.state}, loaded=${this.loaded.has(id)}`);
     if (context.state !== "running") return;
 
     const sound = this.loaded.get(id) ?? (await this.load(id));
@@ -63,9 +71,11 @@ class AudioManagerImpl {
   }
 
   /** Unlocks audio on mobile browsers that require a user gesture. Called automatically on first interaction. */
-  unlock(): void {
+  unlock(eventType?: string): void {
     if (this.unlocked) return;
     const context = this.getContext();
+    // TEMP DEBUG - remove once iOS Safari playback is confirmed fixed.
+    console.log(`[audio] unlock() via "${eventType}", context=${context ? context.state : "null"}`);
     if (!context || !this.masterGain) return;
     this.unlocked = true;
 
@@ -83,8 +93,11 @@ class AudioManagerImpl {
       source.buffer = silentBuffer;
       source.connect(this.masterGain);
       source.start(0);
-    } catch {
-      /* silent-buffer unlock unsupported; resume() above still applies */
+      // TEMP DEBUG - remove once iOS Safari playback is confirmed fixed.
+      console.log(`[audio] silent unlock buffer started, context now=${context.state}`);
+    } catch (err) {
+      // TEMP DEBUG - remove once iOS Safari playback is confirmed fixed.
+      console.log("[audio] silent unlock buffer failed", err);
     }
   }
 
