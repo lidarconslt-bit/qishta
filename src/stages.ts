@@ -54,19 +54,34 @@ const DATE_FRUIT: SpecialFruit = {
   firstMaxIntervalMs: 15000,
 };
 
+// The watermelon is a big, unmistakable "hero" fruit — larger and glowing, so
+// its arrival reads as an event rather than blending into the small random
+// fruit. Its first appearance is guaranteed inside a 10-20s window, then it
+// recurs on a relaxed cadence.
+const WATERMELON_FRUIT: SpecialFruit = {
+  id: "watermelon",
+  emoji: "🍉",
+  points: 3,
+  className: "fruit__emoji--watermelon",
+  minIntervalMs: 16000,
+  maxIntervalMs: 26000,
+  firstMinIntervalMs: 10000,
+  firstMaxIntervalMs: 18000,
+};
+
 export const STAGES: StageConfig[] = [
   {
     id: 1,
     targetFruits: 15,
     difficultyMultiplier: 1,
-    specialFruits: [DATE_FRUIT],
+    specialFruits: [WATERMELON_FRUIT, DATE_FRUIT],
     hazards: [],
   },
   {
     id: 2,
     targetFruits: null,
     difficultyMultiplier: 1,
-    specialFruits: [DATE_FRUIT],
+    specialFruits: [WATERMELON_FRUIT, DATE_FRUIT],
     hazards: [],
   },
 ];

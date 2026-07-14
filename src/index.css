@@ -346,6 +346,15 @@ body {
   animation: date-glow 1.2s ease-in-out infinite;
 }
 
+/* The watermelon is the biggest, most eye-catching fruit so its arrival lands
+   as a clear moment. It reuses the gentle date-glow pulse for consistency. */
+.fruit__emoji--watermelon {
+  font-size: 42px;
+  filter: drop-shadow(0 3px 5px rgba(var(--color-text-rgb), 0.18))
+    drop-shadow(0 0 11px rgba(var(--color-accent-rgb), 0.55));
+  animation: date-glow 1.2s ease-in-out infinite;
+}
+
 .fruit__emoji--caught {
   animation: fruit-pop 280ms ease-out forwards;
 }

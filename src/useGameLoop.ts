@@ -3,14 +3,9 @@ import { playSound } from "./sound";
 import { comboFeel } from "./combo";
 import type { SpecialFruit, StageConfig } from "./stages";
 
-const FRUIT_EMOJIS = ["🍎", "🍌", "🍇", "🍉", "🍒", "🍑", "🍓", "🥝", "🍍", "🍊"];
-
-// Guaranteed-first-watermelon window (stage 1). The upper bound sits below 20s
-// so that even the ~1 spawn-interval delay before the forced fruit lands keeps
-// the first watermelon comfortably inside a 10-20s playtest window.
-const WATERMELON_EMOJI = "🍉";
-const WATERMELON_MIN_MS = 10000;
-const WATERMELON_MAX_MS = 18000;
+// The watermelon is intentionally absent here: it is a distinct "hero" special
+// fruit (see WATERMELON_FRUIT in stages.ts), not one of the small random fruits.
+const FRUIT_EMOJIS = ["🍎", "🍌", "🍇", "🍒", "🍑", "🍓", "🥝", "🍍", "🍊"];
 
 const RAMP_DURATION_SEC = 45;
 const BASE_FALL_SPEED = 110; // px/s
@@ -126,16 +121,6 @@ export function useGameLoop({
     let secondLastSpawnZone = -1;
     let lastSpawnX = -1;
     let lastEmojiIndex = -1;
-    // First-watermelon guarantee (stage 1 only): the watermelon is one of the
-    // ordinary random fruits, so on its own it might not show up early in a
-    // playtest. We arm a wall-clock countdown (measured from this run, not the
-    // difficulty clock which is pre-aged on replays) and, if no watermelon has
-    // appeared naturally by then, force the next regular fruit to be one. This
-    // keeps the first watermelon inside a 10-20s window without touching pacing.
-    let watermelonCountdownMs =
-      stage.id === 1 ? WATERMELON_MIN_MS + Math.random() * (WATERMELON_MAX_MS - WATERMELON_MIN_MS) : Infinity;
-    let watermelonGuaranteed = stage.id !== 1;
-    let forceWatermelonNext = false;
     const specialFruits = stage.specialFruits;
     const specialTimers = specialFruits.map((fruit) => randomSpecialInterval(fruit, true));
     const keys = { left: false, right: false };
@@ -223,19 +208,11 @@ export function useGameLoop({
     };
 
     const pickFruitEmoji = (): string => {
-      if (forceWatermelonNext) {
-        forceWatermelonNext = false;
-        watermelonGuaranteed = true;
-        lastEmojiIndex = FRUIT_EMOJIS.indexOf(WATERMELON_EMOJI);
-        return WATERMELON_EMOJI;
-      }
       let index = Math.floor(Math.random() * FRUIT_EMOJIS.length);
       if (index === lastEmojiIndex) {
         index = (index + 1 + Math.floor(Math.random() * (FRUIT_EMOJIS.length - 1))) % FRUIT_EMOJIS.length;
       }
       lastEmojiIndex = index;
-      // A watermelon that shows up on its own satisfies the guarantee.
-      if (FRUIT_EMOJIS[index] === WATERMELON_EMOJI) watermelonGuaranteed = true;
       return FRUIT_EMOJIS[index];
     };
 
@@ -385,11 +362,6 @@ export function useGameLoop({
         basketVx = 0;
       }
       basket.style.transform = `translate3d(${currentX - basketWidth / 2}px, 0, 0)`;
-
-      if (!watermelonGuaranteed) {
-        watermelonCountdownMs -= dt * 1000;
-        if (watermelonCountdownMs <= 0) forceWatermelonNext = true;
-      }
 
       spawnTimerMs -= dt * 1000;
       if (spawnTimerMs <= 0) {
