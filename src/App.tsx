@@ -70,8 +70,10 @@ export default function App() {
     [bestScore],
   );
 
-  const handleStageComplete = useCallback((score: number, hearts: number, elapsedMs: number) => {
-    nextRoundRef.current = { score, hearts, elapsedMs };
+  const handleStageComplete = useCallback((score: number, _hearts: number, elapsedMs: number) => {
+    // Every stage begins with a full set of hearts — clearing a stage refills
+    // them so the next stage is a fresh start, not a continuation of damage.
+    nextRoundRef.current = { score, hearts: 3, elapsedMs };
     setStageComplete(true);
   }, []);
 
