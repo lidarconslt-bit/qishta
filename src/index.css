@@ -72,7 +72,7 @@ body {
 }
 
 .app--shake {
-  animation: camera-shake 260ms ease-out;
+  animation: camera-shake 240ms cubic-bezier(0.2, 0.9, 0.25, 1);
 }
 
 .brand-logo {
@@ -279,6 +279,27 @@ body {
 
 .basket--impact::after {
   animation: basket-impact-glow 260ms ease-out;
+}
+
+/* Combo aura: a soft warm halo behind the basket. Its strength is driven by
+   the --combo-glow custom property the game loop sets on .basket (0..1), so it
+   builds as a streak grows and fades when the streak breaks. Purely ambient
+   feedback — it lives exactly where the player is already looking. */
+.basket__aura {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 96px;
+  height: 96px;
+  margin-left: -48px;
+  margin-top: -48px;
+  border-radius: 50%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(var(--color-accent-rgb), 0.6) 0%, transparent 68%);
+  opacity: calc(var(--combo-glow, 0) * 0.5);
+  transform: scale(calc(0.65 + var(--combo-glow, 0) * 0.5));
+  transition: opacity 320ms ease-out, transform 320ms var(--ease-premium);
 }
 
 .basket__emoji {
@@ -851,23 +872,27 @@ body {
 }
 
 @keyframes camera-shake {
+  /* Front-loaded impact: a sharp downward "thud" + a micro scale recoil in
+     the first frames, then a fast damped settle. The scale punch is what a
+     mobile player feels even without haptics (dead on iOS Safari), while the
+     displacement stays soft so it reads as a hit, not a rattle. */
   0% {
-    transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0) scale(1);
   }
-  20% {
-    transform: translate3d(-4px, 2px, 0);
+  14% {
+    transform: translate3d(0, 5px, 0) scale(0.983);
   }
-  40% {
-    transform: translate3d(4px, -2px, 0);
+  32% {
+    transform: translate3d(-4px, -3px, 0) scale(1.006);
   }
-  60% {
-    transform: translate3d(-3px, 1px, 0);
+  52% {
+    transform: translate3d(3px, 2px, 0) scale(0.997);
   }
-  80% {
-    transform: translate3d(2px, -1px, 0);
+  74% {
+    transform: translate3d(-2px, -1px, 0) scale(1.001);
   }
   100% {
-    transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0) scale(1);
   }
 }
 

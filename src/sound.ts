@@ -8,6 +8,6 @@ export type SoundName = "catch" | "specialCatch" | "miss" | "gameOver";
 AudioManager.register("catch", "/sounds/catch.wav");
 void AudioManager.preload(["catch"]);
 
-export function playSound(name: SoundName): void {
-  AudioManager.play(name);
+export function playSound(name: SoundName, options?: { rate?: number }): void {
+  AudioManager.play(name, options);
 }

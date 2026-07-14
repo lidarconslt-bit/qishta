@@ -1,8 +1,16 @@
 import { useEffect, useRef, type RefObject } from "react";
 import { playSound } from "./sound";
+import { comboFeel } from "./combo";
 import type { SpecialFruit, StageConfig } from "./stages";
 
 const FRUIT_EMOJIS = ["🍎", "🍌", "🍇", "🍉", "🍒", "🍑", "🍓", "🥝", "🍍", "🍊"];
+
+// Guaranteed-first-watermelon window (stage 1). The upper bound sits below 20s
+// so that even the ~1 spawn-interval delay before the forced fruit lands keeps
+// the first watermelon comfortably inside a 10-20s playtest window.
+const WATERMELON_EMOJI = "🍉";
+const WATERMELON_MIN_MS = 10000;
+const WATERMELON_MAX_MS = 18000;
 
 const RAMP_DURATION_SEC = 45;
 const BASE_FALL_SPEED = 110; // px/s
@@ -106,6 +114,7 @@ export function useGameLoop({
     let score = startScore;
     let hearts = startHearts;
     let fruitsCaughtInStage = 0;
+    let streak = 0;
     let gameOver = false;
     let basketWidth = 84;
     let targetX = 0;
@@ -117,6 +126,16 @@ export function useGameLoop({
     let secondLastSpawnZone = -1;
     let lastSpawnX = -1;
     let lastEmojiIndex = -1;
+    // First-watermelon guarantee (stage 1 only): the watermelon is one of the
+    // ordinary random fruits, so on its own it might not show up early in a
+    // playtest. We arm a wall-clock countdown (measured from this run, not the
+    // difficulty clock which is pre-aged on replays) and, if no watermelon has
+    // appeared naturally by then, force the next regular fruit to be one. This
+    // keeps the first watermelon inside a 10-20s window without touching pacing.
+    let watermelonCountdownMs =
+      stage.id === 1 ? WATERMELON_MIN_MS + Math.random() * (WATERMELON_MAX_MS - WATERMELON_MIN_MS) : Infinity;
+    let watermelonGuaranteed = stage.id !== 1;
+    let forceWatermelonNext = false;
     const specialFruits = stage.specialFruits;
     const specialTimers = specialFruits.map((fruit) => randomSpecialInterval(fruit, true));
     const keys = { left: false, right: false };
@@ -204,11 +223,19 @@ export function useGameLoop({
     };
 
     const pickFruitEmoji = (): string => {
+      if (forceWatermelonNext) {
+        forceWatermelonNext = false;
+        watermelonGuaranteed = true;
+        lastEmojiIndex = FRUIT_EMOJIS.indexOf(WATERMELON_EMOJI);
+        return WATERMELON_EMOJI;
+      }
       let index = Math.floor(Math.random() * FRUIT_EMOJIS.length);
       if (index === lastEmojiIndex) {
         index = (index + 1 + Math.floor(Math.random() * (FRUIT_EMOJIS.length - 1))) % FRUIT_EMOJIS.length;
       }
       lastEmojiIndex = index;
+      // A watermelon that shows up on its own satisfies the guarantee.
+      if (FRUIT_EMOJIS[index] === WATERMELON_EMOJI) watermelonGuaranteed = true;
       return FRUIT_EMOJIS[index];
     };
 
@@ -246,18 +273,25 @@ export function useGameLoop({
       window.setTimeout(() => wrapper.remove(), 240);
     };
 
-    const spawnCatchBurst = (x: number, y: number, special: boolean) => {
+    const spawnCatchBurst = (x: number, y: number, special: boolean, comboT = 0) => {
       const wrapper = document.createElement("div");
       wrapper.className = special ? "catch-burst catch-burst--special" : "catch-burst";
       wrapper.style.transform = `translate3d(${x}px, ${y}px, 0)`;
       const ring = document.createElement("div");
       ring.className = "catch-burst__ring";
+      // The ring grows gently with the combo. Sizing it inline (rather than a
+      // new class per tier) keeps the escalation smooth and continuous.
+      const ringSize = (special ? 66 : 48) * (1 + comboT * 0.4);
+      ring.style.width = `${ringSize}px`;
+      ring.style.height = `${ringSize}px`;
+      ring.style.marginLeft = `${-ringSize / 2}px`;
+      ring.style.marginTop = `${-ringSize / 2}px`;
       wrapper.appendChild(ring);
-      const particleCount = special ? SPECIAL_PARTICLE_COUNT : PARTICLE_COUNT;
+      const particleCount = (special ? SPECIAL_PARTICLE_COUNT : PARTICLE_COUNT) + Math.round(comboT * 4);
       const sparkleEvery = special ? 2 : 3;
       for (let i = 0; i < particleCount; i += 1) {
         const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5;
-        const distance = 20 + Math.random() * 16;
+        const distance = (20 + Math.random() * 16) * (1 + comboT * 0.4);
         const isSparkle = i % sparkleEvery === sparkleEvery - 1;
         const particle = document.createElement("div");
         const colorClass = `catch-particle--${PARTICLE_COLORS[i % PARTICLE_COLORS.length]}`;
@@ -352,6 +386,11 @@ export function useGameLoop({
       }
       basket.style.transform = `translate3d(${currentX - basketWidth / 2}px, 0, 0)`;
 
+      if (!watermelonGuaranteed) {
+        watermelonCountdownMs -= dt * 1000;
+        if (watermelonCountdownMs <= 0) forceWatermelonNext = true;
+      }
+
       spawnTimerMs -= dt * 1000;
       if (spawnTimerMs <= 0) {
         spawnFruit(rect.width);
@@ -380,21 +419,33 @@ export function useGameLoop({
 
         if (withinBand && withinX) {
           entity.state = "caught";
+          streak += 1;
+          const feel = comboFeel(streak);
           entity.inner.style.setProperty("--pop-rotate", `${(Math.random() - 0.5) * 28}deg`);
           entity.inner.classList.add("fruit__emoji--caught");
           window.setTimeout(() => entity.el.remove(), 280);
           pulseBasket(entity.special ? "basket__emoji--date-catch" : "basket__emoji--catch");
           pulseBasketImpact();
+          // Combo aura builds behind the basket as the streak grows (CSS
+          // transitions the fade), giving the run a felt "state" between catches.
+          basket.style.setProperty("--combo-glow", feel.glow.toFixed(3));
           if (entity.special) shakeScreen();
-          navigator.vibrate?.(entity.special ? 18 : 10);
+          // Haptics reinforce the impact on Android; iOS Safari has no
+          // Vibration API, so the scale-punch shake carries the feel there.
+          // A short double-tick on the special "impact" catch reads firmer
+          // than a single buzz; normal catches firm up gently with the combo.
+          navigator.vibrate?.(entity.special ? [14, 22, 22] : Math.round(10 + feel.intensity * 12));
           score += entity.points;
           onScoreChangeRef.current(score);
-          playSound(entity.special ? "specialCatch" : "catch");
+          // Combo ladder: each consecutive catch plays the tone one step up a
+          // major scale. Pure feel — points are unchanged.
+          playSound(entity.special ? "specialCatch" : "catch", { rate: feel.pitchRate });
           const catchX = entity.x;
           const catchPoints = entity.points;
           const catchSpecial = entity.special;
+          const catchComboT = feel.intensity;
           window.setTimeout(
-            () => spawnCatchBurst(catchX, basketCenterY - 10, catchSpecial),
+            () => spawnCatchBurst(catchX, basketCenterY - 10, catchSpecial, catchComboT),
             CATCH_BURST_DELAY_MS,
           );
           window.setTimeout(
@@ -412,6 +463,10 @@ export function useGameLoop({
           window.setTimeout(() => entity.el.remove(), 220);
           hearts -= 1;
           onHeartsChangeRef.current(hearts);
+          // Combo cools down: pitch returns to the root note next catch and the
+          // aura fades out. Gentle, not a punishment on top of the lost heart.
+          streak = 0;
+          basket.style.setProperty("--combo-glow", "0");
           playSound("miss");
           triggerMissFeedback();
           if (hearts <= 0) {

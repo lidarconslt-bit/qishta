@@ -68,6 +68,7 @@ export function GameField({
         </div>
       </div>
       <div className="basket" ref={basketRef}>
+        <div className="basket__aura" aria-hidden="true" />
         <div className="basket__emoji" ref={basketEmojiRef}>
           🧺
         </div>

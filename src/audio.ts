@@ -45,11 +45,15 @@ class AudioManagerImpl {
     await Promise.all(targets.map((id) => this.load(id)));
   }
 
-  /** Plays a registered sound immediately. Silently does nothing if it isn't registered, loaded, or playable. */
-  play(id: string): void {
+  /**
+   * Plays a registered sound immediately. Silently does nothing if it isn't
+   * registered, loaded, or playable. `rate` shifts pitch/speed (1 = original),
+   * used by the combo ladder.
+   */
+  play(id: string, options?: { rate?: number }): void {
     const context = this.getContext();
     if (!context || !this.masterGain) return;
-    this.playWhenRunning(context, id).catch(() => {});
+    this.playWhenRunning(context, id, options?.rate).catch(() => {});
   }
 
   /**
@@ -58,7 +62,7 @@ class AudioManagerImpl {
    * rather than queued - so playback must wait for state to actually become
    * "running" before calling start().
    */
-  private async playWhenRunning(context: AudioContext, id: string): Promise<void> {
+  private async playWhenRunning(context: AudioContext, id: string, rate?: number): Promise<void> {
     if (context.state !== "running") {
       await context.resume().catch(() => {});
     }
@@ -67,7 +71,7 @@ class AudioManagerImpl {
     if (context.state !== "running") return;
 
     const sound = this.loaded.get(id) ?? (await this.load(id));
-    if (sound) this.playBuffer(sound.buffer);
+    if (sound) this.playBuffer(sound.buffer, rate);
   }
 
   /** Unlocks audio on mobile browsers that require a user gesture. Called automatically on first interaction. */
@@ -156,11 +160,12 @@ class AudioManagerImpl {
     return promise;
   }
 
-  private playBuffer(buffer: AudioBuffer): void {
+  private playBuffer(buffer: AudioBuffer, rate = 1): void {
     if (!this.context || !this.masterGain) return;
     try {
       const source = this.context.createBufferSource();
       source.buffer = buffer;
+      if (rate !== 1) source.playbackRate.value = rate;
       source.connect(this.masterGain);
       source.start(0);
     } catch {
