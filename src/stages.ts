@@ -19,6 +19,10 @@ export interface SpecialFruit {
   // Falls back to minIntervalMs/maxIntervalMs when omitted.
   firstMinIntervalMs?: number;
   firstMaxIntervalMs?: number;
+  // When true, catching this fruit starts "Harvest Frenzy": hearts refill to
+  // full, the basket grows, and fruit rains down faster for a short window
+  // before everything eases cleanly back to normal.
+  frenzy?: boolean;
 }
 
 // Placeholder shape for a future hazard system (obstacles, timed penalties,
@@ -56,8 +60,9 @@ const DATE_FRUIT: SpecialFruit = {
 
 // The watermelon is a big, unmistakable "hero" fruit — larger and glowing, so
 // its arrival reads as an event rather than blending into the small random
-// fruit. Its first appearance is guaranteed inside a 10-20s window, then it
-// recurs on a relaxed cadence.
+// fruit. Catching it triggers Harvest Frenzy (see frenzy). Its first
+// appearance is guaranteed inside a 10-18s window, then it recurs on a
+// relaxed cadence.
 const WATERMELON_FRUIT: SpecialFruit = {
   id: "watermelon",
   emoji: "🍉",
@@ -67,6 +72,7 @@ const WATERMELON_FRUIT: SpecialFruit = {
   maxIntervalMs: 26000,
   firstMinIntervalMs: 10000,
   firstMaxIntervalMs: 18000,
+  frenzy: true,
 };
 
 export const STAGES: StageConfig[] = [

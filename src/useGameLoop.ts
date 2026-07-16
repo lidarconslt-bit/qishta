@@ -14,6 +14,16 @@ const MAX_FALL_SPEED = 370; // px/s
 const BASE_SPAWN_INTERVAL_MS = 1150;
 const MIN_SPAWN_INTERVAL_MS = 430;
 
+const MAX_HEARTS = 3;
+
+// Harvest Frenzy: catching the watermelon refills hearts to full, grows the
+// basket, and makes fruit rain down faster for a short burst. It then eases
+// cleanly back to normal when the timer runs out. Catching another watermelon
+// mid-frenzy simply restarts the window.
+const FRENZY_DURATION_MS = 6000;
+const FRENZY_BASKET_SCALE = 1.5; // wider basket = easier catches during the burst
+const FRENZY_SPAWN_SCALE = 0.5; // shorter spawn interval = denser fruit
+
 const BASKET_WIDTH_RATIO = 0.24;
 const BASKET_MIN_WIDTH = 68;
 const BASKET_MAX_WIDTH = 118;
@@ -57,6 +67,7 @@ interface FruitEntity {
   state: "falling" | "caught" | "missed";
   points: number;
   special: boolean;
+  frenzy: boolean;
 }
 
 interface UseGameLoopOptions {
@@ -111,6 +122,7 @@ export function useGameLoop({
     let fruitsCaughtInStage = 0;
     let streak = 0;
     let gameOver = false;
+    let frenzyMsRemaining = 0;
     let basketWidth = 84;
     let targetX = 0;
     let currentX = 0;
@@ -235,6 +247,7 @@ export function useGameLoop({
         state: "falling",
         points: special ? special.points : 1,
         special: special !== null,
+        frenzy: special?.frenzy ?? false,
       });
     };
 
@@ -318,6 +331,20 @@ export function useGameLoop({
       pulseBasket("basket__emoji--miss");
     };
 
+    const startFrenzy = () => {
+      frenzyMsRemaining = FRENZY_DURATION_MS;
+      hearts = MAX_HEARTS;
+      onHeartsChangeRef.current(hearts);
+      field.classList.add("field--frenzy");
+      basket.classList.add("basket--frenzy");
+    };
+
+    const endFrenzy = () => {
+      frenzyMsRemaining = 0;
+      field.classList.remove("field--frenzy");
+      basket.classList.remove("basket--frenzy");
+    };
+
     const endGame = () => {
       gameOver = true;
       playSound("gameOver");
@@ -336,11 +363,17 @@ export function useGameLoop({
       lastTime = time;
       elapsedMs += dt * 1000;
 
+      if (frenzyMsRemaining > 0) {
+        frenzyMsRemaining -= dt * 1000;
+        if (frenzyMsRemaining <= 0) endFrenzy();
+      }
+
       const rect = field.getBoundingClientRect();
       basketWidth = Math.min(
         BASKET_MAX_WIDTH,
         Math.max(BASKET_MIN_WIDTH, rect.width * BASKET_WIDTH_RATIO),
       );
+      if (frenzyMsRemaining > 0) basketWidth *= FRENZY_BASKET_SCALE;
       basket.style.width = `${basketWidth}px`;
 
       if (!initialized) {
@@ -366,7 +399,8 @@ export function useGameLoop({
       spawnTimerMs -= dt * 1000;
       if (spawnTimerMs <= 0) {
         spawnFruit(rect.width);
-        spawnTimerMs = currentSpawnInterval() * (0.85 + Math.random() * 0.3);
+        const frenzyFactor = frenzyMsRemaining > 0 ? FRENZY_SPAWN_SCALE : 1;
+        spawnTimerMs = currentSpawnInterval() * (0.85 + Math.random() * 0.3) * frenzyFactor;
       }
 
       for (let i = 0; i < specialFruits.length; i += 1) {
@@ -407,6 +441,7 @@ export function useGameLoop({
           // A short double-tick on the special "impact" catch reads firmer
           // than a single buzz; normal catches firm up gently with the combo.
           navigator.vibrate?.(entity.special ? [14, 22, 22] : Math.round(10 + feel.intensity * 12));
+          if (entity.frenzy) startFrenzy();
           score += entity.points;
           onScoreChangeRef.current(score);
           // Combo ladder: each consecutive catch plays the tone one step up a
@@ -468,6 +503,8 @@ export function useGameLoop({
       window.removeEventListener("keyup", handleKeyUp);
       entities.forEach((entity) => entity.el.remove());
       field.querySelectorAll(".float-score, .catch-burst").forEach((el) => el.remove());
+      field.classList.remove("field--frenzy");
+      basket.classList.remove("basket--frenzy");
     };
   }, [fieldRef, basketRef, basketEmojiRef, heartsWrapRef, startElapsedMs, startScore, startHearts, stage]);
 }
