@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useGameLoop } from "./useGameLoop";
+import { Background } from "./components/Background";
 import { Ground } from "./components/Ground";
 import { getStage } from "./stages";
 
@@ -54,6 +55,7 @@ export function GameField({
 
   return (
     <div className="game-field" ref={fieldRef}>
+      <Background />
       <Ground />
       <div className="hud">
         <div className="hud__score" ref={scoreElRef}>

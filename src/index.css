@@ -123,11 +123,32 @@ body {
   overflow: hidden;
   animation: game-field-in 350ms ease-out both;
   transition: box-shadow 320ms ease-out;
-  background: radial-gradient(circle 46px at 16% 16%, rgba(var(--color-mint-rgb), 0.3), transparent 70%),
-    radial-gradient(circle 30px at 84% 10%, rgba(var(--color-accent-rgb), 0.16), transparent 70%),
-    radial-gradient(circle 36px at 68% 26%, rgba(var(--color-mint-rgb), 0.22), transparent 70%),
-    radial-gradient(circle 26px at 28% 34%, rgba(var(--color-pink-rgb), 0.14), transparent 70%),
-    linear-gradient(180deg, #ffffff 0%, var(--color-bg) 100%);
+  /* Solid cream base matches the sky top of the Background scene, so there is
+     no flash before the SVG paints. The scene itself provides the visuals. */
+  background: var(--color-bg);
+}
+
+/* Background System: the active scene sits behind everything (ground, HUD,
+   fruit, basket) as one lightweight, non-interactive image layer. object-fit:
+   cover with a bottom anchor keeps the hills on the horizon across screen
+   sizes, while the play area above stays soft and low-contrast so the fruit
+   and basket always remain the visual focus. */
+.background {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.background__scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center bottom;
+  display: block;
 }
 
 .game-field::after {

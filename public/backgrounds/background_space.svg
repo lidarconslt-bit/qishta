@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 800" preserveAspectRatio="xMidYMax slice" role="img" aria-label="Placeholder space background: soft light twilight with gentle stars">
+  <!-- PLACEHOLDER: on-brand starting point for a future space theme. Deliberately
+       light (not dark) to keep Qishta's warm, family-friendly identity; refine
+       art before shipping this theme. -->
+  <defs>
+    <linearGradient id="spc-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F3F0FA"/>
+      <stop offset="0.6" stop-color="#FBF3F6"/>
+      <stop offset="1" stop-color="#FFF4EA"/>
+    </linearGradient>
+    <style>
+      @media (prefers-reduced-motion: no-preference) {
+        .spc-twinkle { animation: spc-twinkle 5s ease-in-out infinite alternate; }
+      }
+      @keyframes spc-twinkle { from { opacity: 0.35; } to { opacity: 0.9; } }
+    </style>
+  </defs>
+
+  <rect width="400" height="800" fill="url(#spc-sky)"/>
+
+  <!-- Soft moon -->
+  <circle cx="308" cy="140" r="40" fill="#EFE7FB" opacity="0.9"/>
+
+  <!-- Gentle stars -->
+  <g fill="#C9B8E8">
+    <circle class="spc-twinkle" cx="90" cy="120" r="3"/>
+    <circle class="spc-twinkle" cx="170" cy="90" r="2.4"/>
+    <circle class="spc-twinkle" cx="250" cy="200" r="2.6"/>
+    <circle class="spc-twinkle" cx="130" cy="240" r="2.2"/>
+  </g>
+
+  <!-- Soft hill horizon -->
+  <path fill="#B9A9E0" opacity="0.55"
+    d="M-50,720 C 100,668 200,712 288,678 C 360,650 408,680 450,670 L450,810 L-50,810 Z"/>
+</svg>

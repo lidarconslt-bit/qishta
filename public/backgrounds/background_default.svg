@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 800" preserveAspectRatio="xMidYMax slice" role="img" aria-label="Soft cream sky over gentle green hills">
+  <defs>
+    <linearGradient id="def-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFEFC"/>
+      <stop offset="0.6" stop-color="#FFF9F2"/>
+      <stop offset="1" stop-color="#FFF4EA"/>
+    </linearGradient>
+    <linearGradient id="def-hill-far" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#C4E9DB"/>
+      <stop offset="1" stop-color="#A8DCCB"/>
+    </linearGradient>
+    <linearGradient id="def-hill-mid" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#63BCA8"/>
+      <stop offset="1" stop-color="#3DA190"/>
+    </linearGradient>
+    <style>
+      @media (prefers-reduced-motion: no-preference) {
+        .def-drift-a { animation: def-drift-a 58s ease-in-out infinite alternate; }
+        .def-drift-b { animation: def-drift-b 78s ease-in-out infinite alternate; }
+      }
+      @keyframes def-drift-a { from { transform: translateX(-12px); } to { transform: translateX(12px); } }
+      @keyframes def-drift-b { from { transform: translateX(10px); } to { transform: translateX(-10px); } }
+    </style>
+  </defs>
+
+  <rect width="400" height="800" fill="url(#def-sky)"/>
+
+  <!-- One soft cloud, gently drifting -->
+  <g class="def-drift-b" fill="#FFFFFF" opacity="0.8">
+    <g transform="translate(120,150)">
+      <ellipse cx="0" cy="9" rx="30" ry="16"/>
+      <ellipse cx="24" cy="1" rx="20" ry="13"/>
+      <rect x="-40" y="8" width="82" height="16" rx="8"/>
+    </g>
+  </g>
+
+  <!-- Rounded hills -->
+  <g class="def-drift-b">
+    <path fill="url(#def-hill-far)" opacity="0.8"
+      d="M-50,648 C 90,580 180,616 268,588 C 344,564 402,592 450,580 L450,810 L-50,810 Z"/>
+  </g>
+  <g class="def-drift-a">
+    <path fill="url(#def-hill-mid)" opacity="0.9"
+      d="M-50,720 C 90,662 190,708 276,674 C 352,644 402,676 450,666 L450,810 L-50,810 Z"/>
+  </g>
+</svg>

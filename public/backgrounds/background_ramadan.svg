@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 800" preserveAspectRatio="xMidYMax slice" role="img" aria-label="Placeholder Ramadan background: warm cream sky with a soft crescent">
+  <!-- PLACEHOLDER: on-brand starting point for a future Ramadan theme. Keeps the
+       cream identity and soft palette; refine art before shipping this theme. -->
+  <defs>
+    <linearGradient id="ram-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFBF4"/>
+      <stop offset="0.6" stop-color="#FFF3E6"/>
+      <stop offset="1" stop-color="#FBE7D2"/>
+    </linearGradient>
+    <linearGradient id="ram-hill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#63BCA8"/>
+      <stop offset="1" stop-color="#3DA190"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="400" height="800" fill="url(#ram-sky)"/>
+
+  <!-- Soft crescent -->
+  <g transform="translate(300,140)">
+    <circle cx="0" cy="0" r="34" fill="#F4A261" opacity="0.9"/>
+    <circle cx="14" cy="-6" r="30" fill="#FFF3E6"/>
+  </g>
+
+  <!-- Gentle rounded hill -->
+  <path fill="url(#ram-hill)" opacity="0.9"
+    d="M-50,712 C 90,656 190,706 276,672 C 352,642 402,674 450,664 L450,810 L-50,810 Z"/>
+</svg>

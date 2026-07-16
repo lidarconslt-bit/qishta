@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 800" preserveAspectRatio="xMidYMax slice" role="img" aria-label="Soft cream sky over layered rounded green hills with gentle clouds">
+  <defs>
+    <linearGradient id="fruit-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFEFC"/>
+      <stop offset="0.55" stop-color="#FFF9F2"/>
+      <stop offset="1" stop-color="#FFF1E3"/>
+    </linearGradient>
+    <radialGradient id="fruit-sun" cx="0.78" cy="0.15" r="0.55">
+      <stop offset="0" stop-color="#F4A261" stop-opacity="0.26"/>
+      <stop offset="0.5" stop-color="#F4A261" stop-opacity="0.07"/>
+      <stop offset="1" stop-color="#F4A261" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="fruit-hill-far" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#C4E9DB"/>
+      <stop offset="1" stop-color="#A8DCCB"/>
+    </linearGradient>
+    <linearGradient id="fruit-hill-mid" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#63BCA8"/>
+      <stop offset="1" stop-color="#3DA190"/>
+    </linearGradient>
+    <style>
+      /* Gentle parallax: each layer drifts at its own slow pace and amplitude,
+         so clouds and hills separate into depth. Purely ambient — never fast,
+         never distracting. Disabled when the player prefers reduced motion. */
+      @media (prefers-reduced-motion: no-preference) {
+        .drift-a { animation: fruit-drift-a 46s ease-in-out infinite alternate; }
+        .drift-b { animation: fruit-drift-b 62s ease-in-out infinite alternate; }
+        .drift-c { animation: fruit-drift-c 80s ease-in-out infinite alternate; }
+      }
+      @keyframes fruit-drift-a { from { transform: translateX(-16px); } to { transform: translateX(18px); } }
+      @keyframes fruit-drift-b { from { transform: translateX(15px); } to { transform: translateX(-15px); } }
+      @keyframes fruit-drift-c { from { transform: translateX(-9px); } to { transform: translateX(9px); } }
+    </style>
+  </defs>
+
+  <!-- Cream gradient sky + soft morning light -->
+  <rect width="400" height="800" fill="url(#fruit-sky)"/>
+  <rect width="400" height="800" fill="url(#fruit-sun)"/>
+
+  <!-- Very soft cartoon clouds, drifting at different rates (upper sky only) -->
+  <g fill="#FFFFFF">
+    <g class="drift-b" opacity="0.85">
+      <g transform="translate(80,158)">
+        <ellipse cx="0" cy="10" rx="34" ry="18"/>
+        <ellipse cx="28" cy="1" rx="24" ry="16"/>
+        <ellipse cx="-27" cy="4" rx="20" ry="14"/>
+        <rect x="-47" y="9" width="98" height="19" rx="9.5"/>
+      </g>
+    </g>
+    <g class="drift-c" opacity="0.7">
+      <g transform="translate(302,98)">
+        <ellipse cx="0" cy="8" rx="26" ry="14"/>
+        <ellipse cx="20" cy="1" rx="18" ry="12"/>
+        <rect x="-31" y="7" width="67" height="14" rx="7"/>
+      </g>
+    </g>
+    <g class="drift-a" opacity="0.58">
+      <g transform="translate(214,262)">
+        <ellipse cx="0" cy="7" rx="22" ry="12"/>
+        <ellipse cx="16" cy="0" rx="15" ry="10"/>
+        <rect x="-25" y="5" width="53" height="12" rx="6"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- Far rounded hills (lightest, sit highest) -->
+  <g class="drift-c">
+    <path fill="url(#fruit-hill-far)" opacity="0.8"
+      d="M-50,632 C 70,556 150,600 236,572 C 312,548 388,584 450,566 L450,810 L-50,810 Z"/>
+  </g>
+
+  <!-- Mid rounded hills (soft green, lower) -->
+  <g class="drift-a">
+    <path fill="url(#fruit-hill-mid)" opacity="0.9"
+      d="M-50,712 C 80,648 190,704 274,666 C 350,632 402,672 450,660 L450,810 L-50,810 Z"/>
+    <!-- Subtle far-orchard dots: a warm nod to the fruit theme, kept faint -->
+    <circle cx="120" cy="690" r="4" fill="#F4A261" opacity="0.5"/>
+    <circle cx="300" cy="672" r="3.5" fill="#F48FB1" opacity="0.45"/>
+  </g>
+</svg>
