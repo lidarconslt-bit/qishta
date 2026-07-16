@@ -345,6 +345,19 @@ export function useGameLoop({
       basket.classList.remove("basket--frenzy");
     };
 
+    // Instantly wipe every other falling fruit off the screen. Called the
+    // moment the watermelon is collected so Harvest Frenzy starts from a clean
+    // slate — the player is rewarded, not punished by fruit that was already
+    // falling. Marking them non-"falling" lets the end-of-tick cleanup splice
+    // them out; no heart is lost and no miss feedback fires.
+    const clearFallingFruits = (except: FruitEntity) => {
+      for (const other of entities) {
+        if (other === except || other.state !== "falling") continue;
+        other.state = "caught";
+        other.el.remove();
+      }
+    };
+
     const endGame = () => {
       gameOver = true;
       playSound("gameOver");
@@ -441,7 +454,10 @@ export function useGameLoop({
           // A short double-tick on the special "impact" catch reads firmer
           // than a single buzz; normal catches firm up gently with the combo.
           navigator.vibrate?.(entity.special ? [14, 22, 22] : Math.round(10 + feel.intensity * 12));
-          if (entity.frenzy) startFrenzy();
+          if (entity.frenzy) {
+            startFrenzy();
+            clearFallingFruits(entity);
+          }
           score += entity.points;
           onScoreChangeRef.current(score);
           // Combo ladder: each consecutive catch plays the tone one step up a
